@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flex Tokens | Proton WON & EASY</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Chivo+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-sheen"></div>
+  <header class="shell">
+    <div class="badge">Flex Tokens</div>
+    <div class="hero">
+      <div>
+        <p class="eyebrow">Proton Network | Smart Contract Control</p>
+        <h1>Operate WON &amp; EASY without leaving your browser.</h1>
+        <p class="lede">Connect a Proton wallet, inspect token stats, and submit signed transfers against the official contracts.</p>
+        <div class="cta-row">
+          <button id="connectBtn" class="btn primary">Connect wallet</button>
+          <button id="disconnectBtn" class="btn ghost" disabled>Disconnect</button>
+        </div>
+        <div id="sessionStatus" class="session-status offline">Wallet not connected</div>
+      </div>
+      <div class="glow-card">
+        <div class="panel-title">Network</div>
+        <dl class="stat-grid">
+          <div>
+            <dt>Chain</dt>
+            <dd>Proton Mainnet</dd>
+          </div>
+          <div>
+            <dt>Chain ID</dt>
+            <dd class="mono">384da888112027f0…</dd>
+          </div>
+          <div>
+            <dt>RPC endpoints</dt>
+            <dd class="mono small">proton.greymass.com<br>proton.eoscafeblock.com</dd>
+          </div>
+        </dl>
+        <div class="hint">Your keys never leave your wallet. All transactions are signed client-side.</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell grid">
+    <section class="card span-2">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Token control</p>
+          <h2>WON + EASY actions</h2>
+        </div>
+        <div class="flex-gap">
+          <a class="pill" href="https://explorer.xprnetwork.org/tokens/WON-proton-w3won" target="_blank" rel="noreferrer">View WON explorer</a>
+          <a class="pill" href="https://explorer.xprnetwork.org/tokens/EASY-proton-mon3y" target="_blank" rel="noreferrer">View EASY explorer</a>
+        </div>
+      </div>
+      <div class="token-grid" id="tokenGrid">
+        <!-- Token cards injected -->
+      </div>
+      <div class="story-grid">
+        <article class="story">
+          <div class="story-head">
+            <div class="pill tone-won">WON narrative</div>
+            <a class="pill" href="https://proton.alcor.exchange/analytics/tokens/won-w3won" target="_blank" rel="noreferrer">Trade WON</a>
+          </div>
+          <h3>The time is already here. 🌳</h3>
+          <p>We are living in Paradise on Earth! The official XPR version of WON just stealth-launched on the Solstice. Buy WON once, and you’re giving forever support to eco village projects—while receiving daily tokens to redeem at eco villages.</p>
+          <ul class="story-points">
+            <li>3% transfer tax fuels eco-village creation + tokenization.</li>
+            <li>2.2% reflections flow back to you (auto-invested into village tokens).</li>
+            <li>0.8% fuels the team to push the movement.</li>
+          </ul>
+          <p>Choose what project to support with your automatic payments, or let WON auto-invest you in the latest monthly village of gathering.</p>
+          <div class="links">
+            <a class="pill" href="https://t.me/templeearth" target="_blank" rel="noreferrer">Temple Earth Telegram</a>
+            <a class="pill" href="https://explorer.xprnetwork.org/tokens/WON-proton-w3won" target="_blank" rel="noreferrer">Contract: w3won</a>
+          </div>
+        </article>
+        <article class="story">
+          <div class="story-head">
+            <div class="pill tone-easy">EASY narrative</div>
+            <a class="pill" href="https://explorer.xprnetwork.org/tokens/EASY-proton-mon3y" target="_blank" rel="noreferrer">View EASY token</a>
+          </div>
+          <h3>The “Take it EASY” plan</h3>
+          <p>Fire your financial advisor (optional), grab EASY tokens, and let reflexive rewards do the work. Your balance grows just by existing—money having “babies” while you sleep.</p>
+          <ul class="story-points">
+            <li>Only 21 million EASY exist, enabling at most 100,000 “EASY retirement plans.”</li>
+            <li>Exclusive EASY 210 Club: scarcity-backed bragging rights.</li>
+            <li>Lean back, relax, and watch reflections roll in.</li>
+          </ul>
+          <p>Go to Alcor Exchange on the XPR Network, get some EASY, and enjoy the ride. Disclaimer: not financial advice—just a playful, high-tilt experiment.</p>
+          <div class="links">
+            <a class="pill" href="https://t.me/flextokens/1" target="_blank" rel="noreferrer">EASY announcement</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Balances</p>
+          <h2>My holdings</h2>
+        </div>
+        <button id="refreshBalances" class="btn small ghost" disabled>Refresh</button>
+      </div>
+      <div id="balanceList" class="balance-list empty">Connect a wallet to load balances.</div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Transfers</p>
+          <h2>Send tokens</h2>
+        </div>
+        <div class="helper-text">Requires connected wallet &amp; valid Proton account.</div>
+      </div>
+      <form id="transferForm" class="form">
+        <label>
+          <span>Token</span>
+          <select id="transferToken">
+            <option value="WON">WON</option>
+            <option value="EASY">EASY</option>
+          </select>
+        </label>
+        <label>
+          <span>Recipient account</span>
+          <input id="transferTo" type="text" placeholder="receiver" autocomplete="off" required>
+        </label>
+        <label>
+          <span>Amount</span>
+          <input id="transferAmount" type="number" min="0" step="0.0001" placeholder="0.0000" required>
+        </label>
+        <label>
+          <span>Memo (optional)</span>
+          <input id="transferMemo" type="text" maxlength="120" placeholder="Purpose of transfer">
+        </label>
+        <button class="btn primary full" type="submit" id="transferSubmit" disabled>Send with wallet</button>
+      </form>
+      <div id="transferResult" class="result"></div>
+    </section>
+
+    <section class="card span-2">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Account lookup</p>
+          <h2>Check any account</h2>
+        </div>
+        <div class="helper-text">Pull live balances straight from Proton RPC.</div>
+      </div>
+      <form id="lookupForm" class="inline-form">
+        <input id="lookupAccount" type="text" placeholder="account to inspect" autocomplete="off" required>
+        <button class="btn ghost" type="submit">Lookup</button>
+      </form>
+      <div id="lookupResults" class="lookup-results empty">Enter an account name to view WON and EASY holdings.</div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
