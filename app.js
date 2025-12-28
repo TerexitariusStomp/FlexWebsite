@@ -29,6 +29,7 @@ const sessionKit = new SessionKit(
 
 let session;
 const tokenStats = {};
+let loginInFlight = false;
 
 const el = {
   connect: document.getElementById('connectBtn'),
@@ -498,18 +499,23 @@ function updateSessionUI() {
 }
 
 function openWalletModal() {
-  el.walletModal.classList.add('show');
+  if (el.walletModal) el.walletModal.classList.add('show');
 }
 
 function closeWalletModal() {
-  el.walletModal.classList.remove('show');
+  if (el.walletModal) el.walletModal.classList.remove('show');
 }
 
-async function loginWithPlugin(plugin) {
+async function connectWallet(pluginOverride) {
+  if (loginInFlight) return;
+  loginInFlight = true;
+  openWalletModal();
   try {
     el.connect.disabled = true;
     el.connect.textContent = 'Connecting...';
-    const { session: sess } = await sessionKit.login({ chain: chainId, walletPlugin: plugin });
+    const args = { chain: chainId };
+    if (pluginOverride) args.walletPlugin = pluginOverride;
+    const { session: sess } = await sessionKit.login(args);
     session = sess;
     updateSessionUI();
     showToast(`Connected as ${session.actor}`);
@@ -518,17 +524,9 @@ async function loginWithPlugin(plugin) {
     console.error(err);
     showToast(err?.message || 'Connection cancelled or failed.', 'error');
   } finally {
+    loginInFlight = false;
     el.connect.textContent = 'Connect wallet';
     if (!session) el.connect.disabled = false;
-  }
-}
-
-function connectWallet() {
-  if (el.walletModal) {
-    openWalletModal();
-  } else {
-    // Fallback: invoke WharfKit UI directly if modal not in DOM.
-    loginWithPlugin(undefined);
   }
 }
 
@@ -740,10 +738,10 @@ function bindEvents() {
     });
   }
   if (el.walletAnchor) {
-    el.walletAnchor.addEventListener('click', () => loginWithPlugin(anchorPlugin));
+    el.walletAnchor.addEventListener('click', () => connectWallet(anchorPlugin));
   }
   if (el.walletWebAuth) {
-    el.walletWebAuth.addEventListener('click', () => loginWithPlugin(webAuthPlugin));
+    el.walletWebAuth.addEventListener('click', () => connectWallet(webAuthPlugin));
   }
 }
 
