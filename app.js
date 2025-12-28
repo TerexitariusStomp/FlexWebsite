@@ -13,6 +13,9 @@ const tokens = [
   { symbol: 'MEME', name: 'MEME', contract: 'm3m3', explorer: 'https://explorer.xprnetwork.org/tokens/MEME-proton-m3m3' }
 ];
 
+const anchorPlugin = new WalletPluginAnchor();
+const webAuthPlugin = new WalletPluginWebAuth({ appName: appIdentifier });
+
 const sessionKit = new SessionKit(
   {
     appName: appIdentifier,
@@ -20,7 +23,7 @@ const sessionKit = new SessionKit(
   },
   {
     ui: new WebRenderer(),
-    walletPlugins: [new WalletPluginAnchor(), new WalletPluginWebAuth({ appName: appIdentifier })]
+    walletPlugins: [anchorPlugin, webAuthPlugin]
   }
 );
 
@@ -33,6 +36,11 @@ const el = {
   sessionStatus: document.getElementById('sessionStatus'),
   tokenGrid: document.getElementById('tokenGrid'),
   actionsGrid: document.getElementById('actionsGrid'),
+  walletModal: document.getElementById('walletModal'),
+  walletModalContent: document.getElementById('walletModalContent'),
+  walletClose: document.getElementById('walletClose'),
+  walletAnchor: document.getElementById('walletAnchor'),
+  walletWebAuth: document.getElementById('walletWebAuth'),
   toast: document.getElementById('toast')
 };
 
@@ -388,7 +396,7 @@ function showToast(message, tone = 'info') {
 function short(str, len = 10) {
   if (!str) return '';
   if (str.length <= len) return str;
-  return `${str.slice(0, len / 2)}…${str.slice(-len / 2)}`;
+  return `${str.slice(0, len / 2)}...${str.slice(-len / 2)}`;
 }
 
 async function rpcPost(path, body) {
@@ -456,15 +464,15 @@ function renderTokens() {
       <div class="token-stats">
         <div class="stat">
           <label>Supply</label>
-          <strong>${stats?.supply || (state.loadingTokens ? 'Loading…' : '—')}</strong>
+          <strong>${stats?.supply || (state.loadingTokens ? 'Loading...' : '—')}</strong>
         </div>
         <div class="stat">
           <label>Max supply</label>
-          <strong>${stats?.maxSupply || (state.loadingTokens ? 'Loading…' : '—')}</strong>
+          <strong>${stats?.maxSupply || (state.loadingTokens ? 'Loading...' : '—')}</strong>
         </div>
         <div class="stat">
           <label>Issuer</label>
-          <strong class="mono">${stats?.issuer || (state.loadingTokens ? 'Loading…' : '—')}</strong>
+          <strong class="mono">${stats?.issuer || (state.loadingTokens ? 'Loading...' : '—')}</strong>
         </div>
       </div>
     `;
@@ -490,21 +498,34 @@ function updateSessionUI() {
   toggleActionButtons();
 }
 
-async function connectWallet() {
+function openWalletModal() {
+  el.walletModal.classList.add('show');
+}
+
+function closeWalletModal() {
+  el.walletModal.classList.remove('show');
+}
+
+async function loginWithPlugin(plugin) {
   try {
     el.connect.disabled = true;
-    el.connect.textContent = 'Connecting…';
-    const { session: sess } = await sessionKit.login({ chain: chainId });
+    el.connect.textContent = 'Connecting...';
+    const { session: sess } = await sessionKit.login({ chain: chainId, walletPlugin: plugin });
     session = sess;
     updateSessionUI();
     showToast(`Connected as ${session.actor}`);
+    closeWalletModal();
   } catch (err) {
     console.error(err);
-    showToast('Connection cancelled or failed.', 'error');
+    showToast(err?.message || 'Connection cancelled or failed.', 'error');
   } finally {
     el.connect.textContent = 'Connect wallet';
     if (!session) el.connect.disabled = false;
   }
+}
+
+function connectWallet() {
+  openWalletModal();
 }
 
 async function disconnectWallet() {
@@ -645,7 +666,7 @@ async function submitAction(token, action, form, resultEl, buttonEl) {
   }
 
   buttonEl.disabled = true;
-  buttonEl.textContent = 'Awaiting signature…';
+  buttonEl.textContent = 'Awaiting signature...';
   resultEl.textContent = '';
 
   try {
@@ -665,7 +686,6 @@ async function submitAction(token, action, form, resultEl, buttonEl) {
       <div class="helper-text mono small">${txid ? `Transaction: ${short(txid)}` : 'Sent for signing'}</div>
     `;
     showToast(`${action.name} sent to network.`);
-    if (session?.actor) await loadBalances(session.actor);
   } catch (err) {
     console.error(err);
     const reason = err?.cause?.message || err?.message || 'Action failed.';
@@ -707,6 +727,12 @@ function renderActionCards() {
 function bindEvents() {
   el.connect.addEventListener('click', connectWallet);
   el.disconnect.addEventListener('click', disconnectWallet);
+  el.walletClose.addEventListener('click', closeWalletModal);
+  el.walletModal.addEventListener('click', (evt) => {
+    if (evt.target === el.walletModal) closeWalletModal();
+  });
+  el.walletAnchor.addEventListener('click', () => loginWithPlugin(anchorPlugin));
+  el.walletWebAuth.addEventListener('click', () => loginWithPlugin(webAuthPlugin));
 }
 
 async function init() {
