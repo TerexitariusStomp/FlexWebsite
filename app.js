@@ -1,6 +1,7 @@
 import { SessionKit } from 'https://unpkg.com/@wharfkit/session@1.6.1/lib/session.m.js';
 import { WebRenderer } from 'https://unpkg.com/@wharfkit/web-renderer@1.4.3/lib/web-renderer.m.js';
 import { WalletPluginAnchor } from 'https://unpkg.com/@wharfkit/wallet-plugin-anchor@1.6.1/lib/wallet-plugin-anchor.m.js';
+import { WalletPluginWebAuth } from 'https://unpkg.com/@wharfkit/wallet-plugin-webauth@1.6.1/lib/wallet-plugin-webauth.m.js';
 
 const chainId = '384da888112027f0321850a169f737c33e53b388aad48b5adace4bab97f437e0';
 const endpoints = ['https://proton.greymass.com', 'https://proton.eoscafeblock.com'];
@@ -19,7 +20,7 @@ const sessionKit = new SessionKit(
   },
   {
     ui: new WebRenderer(),
-    walletPlugins: [new WalletPluginAnchor()]
+    walletPlugins: [new WalletPluginAnchor(), new WalletPluginWebAuth({ appName: appIdentifier })]
   }
 );
 
