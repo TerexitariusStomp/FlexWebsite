@@ -36,6 +36,10 @@ const el = {
   sessionStatus: document.getElementById('sessionStatus'),
   tokenGrid: document.getElementById('tokenGrid'),
   actionsGrid: document.getElementById('actionsGrid'),
+  walletModal: document.getElementById('walletModal'),
+  walletClose: document.getElementById('walletClose'),
+  walletAnchor: document.getElementById('walletAnchor'),
+  walletWebAuth: document.getElementById('walletWebAuth'),
   toast: document.getElementById('toast')
 };
 
@@ -493,15 +497,23 @@ function updateSessionUI() {
   toggleActionButtons();
 }
 
-async function connectWallet() {
+function openWalletModal() {
+  el.walletModal.classList.add('show');
+}
+
+function closeWalletModal() {
+  el.walletModal.classList.remove('show');
+}
+
+async function loginWithPlugin(plugin) {
   try {
     el.connect.disabled = true;
     el.connect.textContent = 'Connecting...';
-    // Let WharfKit UI display available wallet plugins (WebAuth, Anchor, etc).
-    const { session: sess } = await sessionKit.login({ chain: chainId });
+    const { session: sess } = await sessionKit.login({ chain: chainId, walletPlugin: plugin });
     session = sess;
     updateSessionUI();
     showToast(`Connected as ${session.actor}`);
+    closeWalletModal();
   } catch (err) {
     console.error(err);
     showToast(err?.message || 'Connection cancelled or failed.', 'error');
@@ -509,6 +521,10 @@ async function connectWallet() {
     el.connect.textContent = 'Connect wallet';
     if (!session) el.connect.disabled = false;
   }
+}
+
+function connectWallet() {
+  openWalletModal();
 }
 
 async function disconnectWallet() {
@@ -710,6 +726,12 @@ function renderActionCards() {
 function bindEvents() {
   el.connect.addEventListener('click', connectWallet);
   el.disconnect.addEventListener('click', disconnectWallet);
+  el.walletClose.addEventListener('click', closeWalletModal);
+  el.walletModal.addEventListener('click', (evt) => {
+    if (evt.target === el.walletModal) closeWalletModal();
+  });
+  el.walletAnchor.addEventListener('click', () => loginWithPlugin(anchorPlugin));
+  el.walletWebAuth.addEventListener('click', () => loginWithPlugin(webAuthPlugin));
 }
 
 async function init() {
