@@ -30,6 +30,7 @@ const sessionKit = new SessionKit(
 let session;
 const tokenStats = {};
 let loginInFlight = false;
+let loginInFlight = false;
 
 const el = {
   connect: document.getElementById('connectBtn'),
@@ -464,15 +465,15 @@ function renderTokens() {
       <div class="token-stats">
         <div class="stat">
           <label>Supply</label>
-          <strong>${stats?.supply || (state.loadingTokens ? 'Loading...' : '—')}</strong>
+          <strong>${stats?.supply || (state.loadingTokens ? 'Loading...' : '--')}</strong>
         </div>
         <div class="stat">
           <label>Max supply</label>
-          <strong>${stats?.maxSupply || (state.loadingTokens ? 'Loading...' : '—')}</strong>
+          <strong>${stats?.maxSupply || (state.loadingTokens ? 'Loading...' : '--')}</strong>
         </div>
         <div class="stat">
           <label>Issuer</label>
-          <strong class="mono">${stats?.issuer || (state.loadingTokens ? 'Loading...' : '—')}</strong>
+          <strong class="mono">${stats?.issuer || (state.loadingTokens ? 'Loading...' : '--')}</strong>
         </div>
       </div>
     `;
@@ -506,10 +507,9 @@ function closeWalletModal() {
   if (el.walletModal) el.walletModal.classList.remove('show');
 }
 
-async function connectWallet(pluginOverride) {
+async function loginWithPlugin(pluginOverride) {
   if (loginInFlight) return;
   loginInFlight = true;
-  openWalletModal();
   try {
     el.connect.disabled = true;
     el.connect.textContent = 'Connecting...';
@@ -527,6 +527,14 @@ async function connectWallet(pluginOverride) {
     loginInFlight = false;
     el.connect.textContent = 'Connect wallet';
     if (!session) el.connect.disabled = false;
+  }
+}
+
+function connectWallet() {
+  if (el.walletModal) {
+    openWalletModal();
+  } else {
+    loginWithPlugin(undefined);
   }
 }
 
