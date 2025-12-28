@@ -49,13 +49,341 @@ const el = {
 
 const state = {
   loadingBalances: false,
-  loadingTokens: false,
-  loadingActions: false
+  loadingTokens: false
 };
 
-const abiCache = {};
-const preferredActionOrder = ['transfer', 'distribute', 'radiate', 'setflextoken', 'sprouttoken', 'setflexpool', 'addpool', 'setconfig', 'noflexzone', 'optoutoftax', 'settree', 'settreememo', 'open', 'close', 'issue', 'burn', 'create'];
-const actionForms = new Map();
+const actionCatalog = {
+  mon3y: [
+    {
+      name: 'transfer',
+      label: 'transfer',
+      description: 'Send EASY tokens (flex tax applies).',
+      fields: [
+        { name: 'from', type: 'name', autofill: 'actor' },
+        { name: 'to', type: 'name' },
+        { name: 'quantity', type: 'asset', assetSymbol: 'EASY' },
+        { name: 'memo', type: 'string', optional: true }
+      ]
+    },
+    { name: 'distribute', label: 'distribute', description: 'Trigger reflection + burn distribution.', fields: [] },
+    {
+      name: 'setflextoken',
+      label: 'setflextoken',
+      description: 'Pick your reward token symbol.',
+      fields: [
+        { name: 'owner', type: 'name', autofill: 'actor' },
+        { name: 'token_symbol', type: 'string', placeholder: 'BTC' }
+      ]
+    },
+    {
+      name: 'setconfig',
+      label: 'setconfig',
+      description: 'Set pagination + rates.',
+      fields: [
+        { name: 'sym', type: 'symbol', placeholder: '4,EASY' },
+        { name: 'start_key', type: 'uint64', placeholder: '0' },
+        { name: 'limit', type: 'uint32', placeholder: '100' },
+        { name: 'reflection_rate', type: 'uint16', placeholder: '100' },
+        { name: 'burn_rate', type: 'uint16', placeholder: '100' }
+      ]
+    },
+    {
+      name: 'setflexpool',
+      label: 'setflexpool',
+      description: 'Register or update a flex pool.',
+      fields: [
+        { name: 'id', type: 'uint64' },
+        { name: 'token_symbol', type: 'symbol', placeholder: '4,EASY' },
+        { name: 'token_contract', type: 'name', placeholder: 'swap.alcor' },
+        { name: 'pool_ids', type: 'string', placeholder: 'pool ids csv' }
+      ]
+    },
+    {
+      name: 'noflexzone',
+      label: 'noflexzone',
+      description: 'Opt out of taxes/rewards (irreversible without contract auth).',
+      fields: [
+        { name: 'account', type: 'name', autofill: 'actor' },
+        { name: 'ban_status', type: 'bool', placeholder: 'false' }
+      ]
+    },
+    {
+      name: 'create',
+      label: 'create',
+      description: 'Create EASY supply (issuer only).',
+      fields: [
+        { name: 'issuer', type: 'name' },
+        { name: 'maximum_supply', type: 'asset', assetSymbol: 'EASY', placeholder: '21000000.0000 EASY' }
+      ]
+    },
+    {
+      name: 'issue',
+      label: 'issue',
+      description: 'Issue EASY to an account.',
+      fields: [
+        { name: 'to', type: 'name' },
+        { name: 'quantity', type: 'asset', assetSymbol: 'EASY' },
+        { name: 'memo', type: 'string', optional: true }
+      ]
+    },
+    {
+      name: 'open',
+      label: 'open',
+      description: 'Open balance row for EASY.',
+      fields: [
+        { name: 'owner', type: 'name' },
+        { name: 'symbol', type: 'symbol', placeholder: '4,EASY' },
+        { name: 'ram_payer', type: 'name' }
+      ]
+    },
+    {
+      name: 'close',
+      label: 'close',
+      description: 'Close zero balance row.',
+      fields: [
+        { name: 'owner', type: 'name' },
+        { name: 'symbol', type: 'symbol', placeholder: '4,EASY' }
+      ]
+    },
+    {
+      name: 'burn',
+      label: 'burn',
+      description: 'Burn EASY from an account.',
+      fields: [
+        { name: 'username', type: 'name' },
+        { name: 'quantity', type: 'asset', assetSymbol: 'EASY' },
+        { name: 'memo', type: 'string', optional: true }
+      ]
+    }
+  ],
+  w3won: [
+    {
+      name: 'transfer',
+      label: 'transfer',
+      description: 'Send WON tokens.',
+      fields: [
+        { name: 'from', type: 'name', autofill: 'actor' },
+        { name: 'to', type: 'name' },
+        { name: 'quantity', type: 'asset', assetSymbol: 'WON' },
+        { name: 'memo', type: 'string', optional: true }
+      ]
+    },
+    { name: 'radiate', label: 'radiate', description: 'Run reflections and burns.', fields: [] },
+    {
+      name: 'sprouttoken',
+      label: 'sprouttoken',
+      description: 'Select reward token symbol.',
+      fields: [
+        { name: 'owner', type: 'name', autofill: 'actor' },
+        { name: 'token_symbol', type: 'string', placeholder: 'EASY' }
+      ]
+    },
+    {
+      name: 'setconfig',
+      label: 'setconfig',
+      description: 'Set pagination, rates, and project account.',
+      fields: [
+        { name: 'sym', type: 'symbol', placeholder: '4,WON' },
+        { name: 'start_key', type: 'uint64', placeholder: '0' },
+        { name: 'limit', type: 'uint32', placeholder: '100' },
+        { name: 'reflection_rate', type: 'uint16', placeholder: '220' },
+        { name: 'burn_rate', type: 'uint16', placeholder: '0' },
+        { name: 'project_rate', type: 'uint16', placeholder: '80' },
+        { name: 'project_account', type: 'name', placeholder: '1won' }
+      ]
+    },
+    {
+      name: 'addpool',
+      label: 'addpool',
+      description: 'Register or update a flex pool.',
+      fields: [
+        { name: 'id', type: 'uint64' },
+        { name: 'token_symbol', type: 'symbol', placeholder: '4,WON' },
+        { name: 'token_contract', type: 'name', placeholder: 'swap.alcor' },
+        { name: 'pool_ids', type: 'string', placeholder: 'pool ids csv' }
+      ]
+    },
+    {
+      name: 'optoutoftax',
+      label: 'optoutoftax',
+      description: 'Opt out of fees/rewards.',
+      fields: [
+        { name: 'account', type: 'name', autofill: 'actor' },
+        { name: 'ban_status', type: 'bool', placeholder: 'false' }
+      ]
+    },
+    {
+      name: 'settree',
+      label: 'settree',
+      description: 'Assign a tree recipient and rate.',
+      fields: [
+        { name: 'flexer', type: 'name', autofill: 'actor' },
+        { name: 'tree', type: 'name' },
+        { name: 'rate', type: 'uint16', placeholder: '10000' }
+      ]
+    },
+    {
+      name: 'settreememo',
+      label: 'settreememo',
+      description: 'Custom memo for tree leg.',
+      fields: [
+        { name: 'flexer', type: 'name', autofill: 'actor' },
+        { name: 'custom_memo', type: 'string', placeholder: 'memo content' }
+      ]
+    },
+    {
+      name: 'create',
+      label: 'create',
+      description: 'Create WON supply (issuer only).',
+      fields: [
+        { name: 'issuer', type: 'name' },
+        { name: 'maximum_supply', type: 'asset', assetSymbol: 'WON', placeholder: '1000000.0000 WON' }
+      ]
+    },
+    {
+      name: 'issue',
+      label: 'issue',
+      description: 'Issue WON to an account.',
+      fields: [
+        { name: 'to', type: 'name' },
+        { name: 'quantity', type: 'asset', assetSymbol: 'WON' },
+        { name: 'memo', type: 'string', optional: true }
+      ]
+    },
+    {
+      name: 'open',
+      label: 'open',
+      description: 'Open balance row for WON.',
+      fields: [
+        { name: 'owner', type: 'name' },
+        { name: 'symbol', type: 'symbol', placeholder: '4,WON' },
+        { name: 'ram_payer', type: 'name' }
+      ]
+    },
+    {
+      name: 'close',
+      label: 'close',
+      description: 'Close zero balance row.',
+      fields: [
+        { name: 'owner', type: 'name' },
+        { name: 'symbol', type: 'symbol', placeholder: '4,WON' }
+      ]
+    },
+    {
+      name: 'burn',
+      label: 'burn',
+      description: 'Burn WON from an account.',
+      fields: [
+        { name: 'username', type: 'name' },
+        { name: 'quantity', type: 'asset', assetSymbol: 'WON' },
+        { name: 'memo', type: 'string', optional: true }
+      ]
+    }
+  ],
+  m3m3: [
+    {
+      name: 'transfer',
+      label: 'transfer',
+      description: 'Send MEME tokens.',
+      fields: [
+        { name: 'from', type: 'name', autofill: 'actor' },
+        { name: 'to', type: 'name' },
+        { name: 'quantity', type: 'asset', assetSymbol: 'MEME' },
+        { name: 'memo', type: 'string', optional: true }
+      ]
+    },
+    { name: 'distribute', label: 'distribute', description: 'Trigger reflection + burn distribution.', fields: [] },
+    {
+      name: 'setflextoken',
+      label: 'setflextoken',
+      description: 'Pick your reward token symbol.',
+      fields: [
+        { name: 'owner', type: 'name', autofill: 'actor' },
+        { name: 'token_symbol', type: 'string', placeholder: 'EASY' }
+      ]
+    },
+    {
+      name: 'setconfig',
+      label: 'setconfig',
+      description: 'Set pagination + rates.',
+      fields: [
+        { name: 'sym', type: 'symbol', placeholder: '4,MEME' },
+        { name: 'start_key', type: 'uint64', placeholder: '0' },
+        { name: 'limit', type: 'uint32', placeholder: '100' },
+        { name: 'reflection_rate', type: 'uint16', placeholder: '100' },
+        { name: 'burn_rate', type: 'uint16', placeholder: '100' }
+      ]
+    },
+    {
+      name: 'setflexpool',
+      label: 'setflexpool',
+      description: 'Register or update a flex pool.',
+      fields: [
+        { name: 'id', type: 'uint64' },
+        { name: 'token_symbol', type: 'symbol', placeholder: '4,MEME' },
+        { name: 'token_contract', type: 'name', placeholder: 'swap.alcor' },
+        { name: 'pool_ids', type: 'string', placeholder: 'pool ids csv' }
+      ]
+    },
+    {
+      name: 'noflexzone',
+      label: 'noflexzone',
+      description: 'Opt out of fees/rewards (irreversible without contract auth).',
+      fields: [
+        { name: 'account', type: 'name', autofill: 'actor' },
+        { name: 'ban_status', type: 'bool', placeholder: 'false' }
+      ]
+    },
+    {
+      name: 'create',
+      label: 'create',
+      description: 'Create MEME supply (issuer only).',
+      fields: [
+        { name: 'issuer', type: 'name' },
+        { name: 'maximum_supply', type: 'asset', assetSymbol: 'MEME', placeholder: '10000000000000.0000 MEME' }
+      ]
+    },
+    {
+      name: 'issue',
+      label: 'issue',
+      description: 'Issue MEME to an account.',
+      fields: [
+        { name: 'to', type: 'name' },
+        { name: 'quantity', type: 'asset', assetSymbol: 'MEME' },
+        { name: 'memo', type: 'string', optional: true }
+      ]
+    },
+    {
+      name: 'open',
+      label: 'open',
+      description: 'Open balance row for MEME.',
+      fields: [
+        { name: 'owner', type: 'name' },
+        { name: 'symbol', type: 'symbol', placeholder: '4,MEME' },
+        { name: 'ram_payer', type: 'name' }
+      ]
+    },
+    {
+      name: 'close',
+      label: 'close',
+      description: 'Close zero balance row.',
+      fields: [
+        { name: 'owner', type: 'name' },
+        { name: 'symbol', type: 'symbol', placeholder: '4,MEME' }
+      ]
+    },
+    {
+      name: 'burn',
+      label: 'burn',
+      description: 'Burn MEME from an account.',
+      fields: [
+        { name: 'username', type: 'name' },
+        { name: 'quantity', type: 'asset', assetSymbol: 'MEME' },
+        { name: 'memo', type: 'string', optional: true }
+      ]
+    }
+  ]
+};
 
 function showToast(message, tone = 'info') {
   el.toast.textContent = message;
@@ -127,16 +455,6 @@ async function fetchTokenStats() {
   }
 }
 
-async function ensureAbi(contract) {
-  if (abiCache[contract]) return abiCache[contract];
-  const { data } = await rpcPost('/v1/chain/get_abi', { account_name: contract });
-  if (!data?.abi) {
-    throw new Error(`ABI unavailable for ${contract}`);
-  }
-  abiCache[contract] = data.abi;
-  return data.abi;
-}
-
 function renderTokens() {
   el.tokenGrid.innerHTML = '';
   tokens.forEach((token) => {
@@ -190,6 +508,8 @@ function updateSessionUI() {
     el.balanceList.innerHTML = 'Connect a wallet to load balances.';
     el.balanceList.classList.add('empty');
   }
+  prefillAutofillFields();
+  toggleActionButtons();
 }
 
 async function connectWallet() {
@@ -353,63 +673,139 @@ async function lookupAccount(evt) {
   }
 }
 
-function buildFieldsForAction(abi, actionName, fieldsWrap) {
-  const action = abi.actions.find((a) => a.name === actionName);
-  const struct = abi.structs.find((s) => s.name === action?.type);
-  fieldsWrap.innerHTML = '';
-  if (!struct?.fields?.length) {
-    fieldsWrap.innerHTML = '<div class="action-hint">This action accepts no parameters.</div>';
-    return;
+function normalizeValue(field, raw, token) {
+  if (field.type === 'bool') return raw === 'true' || raw === true || raw === '1';
+  if (['uint64', 'uint32', 'uint16'].includes(field.type)) {
+    const parsed = Number(raw);
+    return Number.isNaN(parsed) ? raw : parsed;
   }
-  struct.fields.forEach((field) => {
-    const fieldWrap = document.createElement('label');
-    fieldWrap.innerHTML = `
-      <span>${field.name} <span class="mono small">(${field.type})</span></span>
-      <input data-field="${field.name}" type="text" placeholder="${field.type === 'asset' ? '0.0000 SYMBOL' : field.type}">
-    `;
-    fieldsWrap.appendChild(fieldWrap);
+  if (field.type === 'asset') {
+    if (!raw) return raw;
+    if (raw.includes(' ')) return raw;
+    const precision = tokenStats[token.symbol]?.precision ?? 4;
+    const num = Number(raw);
+    if (Number.isNaN(num)) return raw;
+    const symbol = field.assetSymbol || token.symbol;
+    return `${num.toFixed(precision)} ${symbol}`;
+  }
+  return raw;
+}
+
+function prefillAutofillFields() {
+  const actor = session?.actor || '';
+  document.querySelectorAll('[data-autofill="actor"]').forEach((input) => {
+    input.value = actor;
   });
 }
 
-function sortActions(abi) {
-  return [...abi.actions].sort((a, b) => {
-    const ia = preferredActionOrder.indexOf(a.name);
-    const ib = preferredActionOrder.indexOf(b.name);
-    if (ia === -1 && ib === -1) return a.name.localeCompare(b.name);
-    if (ia === -1) return 1;
-    if (ib === -1) return -1;
-    return ia - ib;
+function toggleActionButtons() {
+  const disabled = !session;
+  document.querySelectorAll('.action-submit').forEach((btn) => {
+    // eslint-disable-next-line no-param-reassign
+    btn.disabled = disabled;
   });
 }
 
-function readFields(fieldsWrap) {
-  const inputs = fieldsWrap.querySelectorAll('[data-field]');
-  const data = {};
-  inputs.forEach((input) => {
-    const name = input.dataset.field;
-    const raw = input.value;
-    data[name] = raw;
+function buildActionForm(token, action) {
+  const form = document.createElement('form');
+  form.className = 'action-form';
+
+  const header = document.createElement('div');
+  header.className = 'action-form-head';
+  header.innerHTML = `
+    <div>
+      <h4>${action.label}</h4>
+      <div class="action-hint">${action.description || ''}</div>
+    </div>
+    <span class="tag">${token.contract}</span>
+  `;
+  const fieldsWrap = document.createElement('div');
+  fieldsWrap.className = 'action-fields';
+
+  if (!action.fields.length) {
+    fieldsWrap.innerHTML = '<div class="action-hint">This action has no parameters.</div>';
+  } else {
+    action.fields.forEach((field) => {
+      const label = document.createElement('label');
+      label.innerHTML = `<span>${field.name} <span class="mono small">(${field.type})</span></span>`;
+      let input;
+      if (field.type === 'bool') {
+        input = document.createElement('select');
+        const optFalse = document.createElement('option');
+        optFalse.value = 'false';
+        optFalse.textContent = 'false';
+        const optTrue = document.createElement('option');
+        optTrue.value = 'true';
+        optTrue.textContent = 'true';
+        input.append(optFalse, optTrue);
+      } else {
+        input = document.createElement('input');
+        input.type = ['uint64', 'uint32', 'uint16'].includes(field.type) ? 'number' : 'text';
+        input.placeholder = field.placeholder || field.type;
+      }
+      input.dataset.field = field.name;
+      if (field.autofill === 'actor') input.dataset.autofill = 'actor';
+      if (!field.optional && field.type !== 'bool') input.required = true;
+      label.appendChild(input);
+      fieldsWrap.appendChild(label);
+    });
+  }
+
+  const submit = document.createElement('button');
+  submit.className = 'btn primary small action-submit';
+  submit.type = 'submit';
+  submit.textContent = `Call ${action.name}`;
+
+  const result = document.createElement('div');
+  result.className = 'result';
+
+  form.appendChild(header);
+  form.appendChild(fieldsWrap);
+  form.appendChild(submit);
+  form.appendChild(result);
+
+  form.addEventListener('submit', (evt) => {
+    evt.preventDefault();
+    submitAction(token, action, form, result, submit);
   });
-  return data;
+
+  return form;
 }
 
-async function executeAction(token, selectEl, fieldsWrap, resultEl, buttonEl) {
+async function submitAction(token, action, form, resultEl, buttonEl) {
   if (!session) {
     showToast('Connect a wallet to sign transactions.', 'error');
     return;
   }
-  const actionName = selectEl.value;
-  const abi = abiCache[token.contract];
-  const payload = readFields(fieldsWrap);
+  const payload = {};
+  const missing = [];
+  action.fields.forEach((field) => {
+    const input = form.querySelector(`[data-field="${field.name}"]`);
+    if (!input) return;
+    const raw = (input.value || '').trim();
+    if (!raw && !field.optional && field.type !== 'bool') {
+      missing.push(field.name);
+      return;
+    }
+    if (!raw && field.optional) return;
+    payload[field.name] = normalizeValue(field, raw, token);
+  });
+
+  if (missing.length) {
+    showToast(`Missing required fields: ${missing.join(', ')}`, 'error');
+    return;
+  }
+
   buttonEl.disabled = true;
   buttonEl.textContent = 'Awaiting signature…';
   resultEl.textContent = '';
+
   try {
     const tx = await session.transact({
       actions: [
         {
           account: token.contract,
-          name: actionName,
+          name: action.name,
           authorization: [session.permissionLevel],
           data: payload
         }
@@ -417,10 +813,10 @@ async function executeAction(token, selectEl, fieldsWrap, resultEl, buttonEl) {
     });
     const txid = tx.transaction_id || tx.resolved?.transaction?.id || tx.processed?.id || '';
     resultEl.innerHTML = `
-      <div>Called <strong>${actionName}</strong> on <span class="mono">${token.contract}</span></div>
+      <div>Called <strong>${action.name}</strong> on <span class="mono">${token.contract}</span></div>
       <div class="helper-text mono small">${txid ? `Transaction: ${short(txid)}` : 'Sent for signing'}</div>
     `;
-    showToast(`${actionName} sent to network.`);
+    showToast(`${action.name} sent to network.`);
     if (session?.actor) await loadBalances(session.actor);
   } catch (err) {
     console.error(err);
@@ -429,74 +825,35 @@ async function executeAction(token, selectEl, fieldsWrap, resultEl, buttonEl) {
     showToast(reason, 'error');
   } finally {
     buttonEl.disabled = false;
-    buttonEl.textContent = 'Execute with wallet';
+    buttonEl.textContent = `Call ${action.name}`;
   }
 }
 
-async function buildActionCard(token) {
-  const card = document.createElement('div');
-  card.className = 'action-card';
-  const header = document.createElement('header');
-  header.innerHTML = `
-    <div>
-      <div class="eyebrow">${token.name}</div>
-      <h3 style="margin:4px 0;">${token.contract}</h3>
-    </div>
-    <a class="pill" href="${token.explorer}" target="_blank" rel="noreferrer">Explorer</a>
-  `;
-  const selectLabel = document.createElement('label');
-  selectLabel.innerHTML = '<span>Action</span>';
-  const select = document.createElement('select');
-  selectLabel.appendChild(select);
-  const fieldsWrap = document.createElement('div');
-  fieldsWrap.className = 'action-fields';
-  const hint = document.createElement('div');
-  hint.className = 'action-hint';
-  hint.textContent = 'Most actions require you to provide the same fields shown in the explorer. Numbers, names, and assets must respect on-chain formats.';
-  const submit = document.createElement('button');
-  submit.className = 'btn primary small';
-  submit.type = 'button';
-  submit.textContent = 'Execute with wallet';
-  const result = document.createElement('div');
-  result.className = 'result';
-  card.appendChild(header);
-  card.appendChild(selectLabel);
-  card.appendChild(fieldsWrap);
-  card.appendChild(hint);
-  card.appendChild(submit);
-  card.appendChild(result);
-  el.actionsGrid.appendChild(card);
-
-  try {
-    const abi = await ensureAbi(token.contract);
-    const sortedActions = sortActions(abi);
-    sortedActions.forEach((action) => {
-      const opt = document.createElement('option');
-      opt.value = action.name;
-      opt.textContent = action.name;
-      select.appendChild(opt);
+function renderActionCards() {
+  el.actionsGrid.innerHTML = '';
+  tokens.forEach((token) => {
+    const card = document.createElement('div');
+    card.className = 'action-card';
+    card.innerHTML = `
+      <div class="action-card-head">
+        <div>
+          <div class="eyebrow">${token.name}</div>
+          <h3 style="margin:4px 0;">${token.contract}</h3>
+        </div>
+        <a class="pill" href="${token.explorer}" target="_blank" rel="noreferrer">Explorer</a>
+      </div>
+    `;
+    const list = document.createElement('div');
+    list.className = 'action-list';
+    const actions = actionCatalog[token.contract] || [];
+    actions.forEach((action) => {
+      list.appendChild(buildActionForm(token, action));
     });
-    buildFieldsForAction(abi, sortedActions[0]?.name, fieldsWrap);
-    select.addEventListener('change', () => buildFieldsForAction(abi, select.value, fieldsWrap));
-    submit.addEventListener('click', () => executeAction(token, select, fieldsWrap, result, submit));
-    actionForms.set(token.contract, { select, fieldsWrap, result, submit });
-  } catch (err) {
-    console.error(err);
-    fieldsWrap.innerHTML = `<div class="action-hint">Unable to fetch ABI for ${token.contract}. Try refreshing.</div>`;
-  }
-}
-
-async function renderActionCards() {
-  state.loadingActions = true;
-  el.actionsGrid.innerHTML = '<div class="action-hint">Loading contract ABIs…</div>';
-  try {
-    el.actionsGrid.innerHTML = '';
-    for (const token of tokens) {
-      await buildActionCard(token);
-    }
-  } finally {
-    state.loadingActions = false;
-  }
+    card.appendChild(list);
+    el.actionsGrid.appendChild(card);
+  });
+  prefillAutofillFields();
+  toggleActionButtons();
 }
 
 function bindEvents() {

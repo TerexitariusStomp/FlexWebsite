@@ -448,7 +448,7 @@ input:focus, select:focus {
   gap: 10px;
 }
 
-.action-card header {
+.action-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -474,4 +474,28 @@ input:focus, select:focus {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.4;
+}
+
+.action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-form {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--card-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-form-head h4 {
+  margin: 0 0 4px;
+}
+
+.action-form .btn {
+  align-self: flex-start;
 }
