@@ -430,6 +430,7 @@ input:focus, select:focus {
 
 .tone-won { background: rgba(110, 243, 197, 0.12); color: var(--accent); border-color: rgba(110, 243, 197, 0.35); }
 .tone-easy { background: rgba(255, 127, 80, 0.12); color: #ffb48f; border-color: rgba(255, 180, 143, 0.4); }
+.tone-meme { background: rgba(255, 255, 255, 0.08); color: #ffd166; border-color: rgba(255, 209, 102, 0.4); }
 
 .actions-grid {
   display: grid;

@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Flex Tokens | Proton WON & EASY</title>
+  <title>Flex Tokens | Proton EASY, WON, MEME</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Chivo+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2">
+  <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
   <div class="bg-sheen"></div>
@@ -16,8 +16,8 @@
     <div class="hero">
       <div>
         <p class="eyebrow">Proton Network | Smart Contract Control</p>
-        <h1>Operate WON &amp; EASY without leaving your browser.</h1>
-        <p class="lede">Connect a Proton wallet, inspect token stats, and submit signed transfers against the official contracts.</p>
+        <h1>Operate EASY, WON, MEME without leaving your browser.</h1>
+        <p class="lede">Connect a Proton wallet with WharfKit, inspect token stats, and submit contract actions against the official flex tokens.</p>
         <div class="cta-row">
           <button id="connectBtn" class="btn primary">Connect wallet</button>
           <button id="disconnectBtn" class="btn ghost" disabled>Disconnect</button>
@@ -50,7 +50,7 @@
       <div class="section-head">
         <div>
           <p class="eyebrow">Token control</p>
-          <h2>WON + EASY actions</h2>
+          <h2>EASY, WON, MEME actions</h2>
         </div>
         <div class="flex-gap">
           <a class="pill" href="https://explorer.xprnetwork.org/tokens/WON-proton-w3won" target="_blank" rel="noreferrer">View WON explorer</a>
@@ -97,52 +97,27 @@
             <a class="pill" href="https://t.me/flextokens/1" target="_blank" rel="noreferrer">EASY announcement</a>
           </div>
         </article>
+        <article class="story">
+          <div class="story-head">
+            <div class="pill tone-meme">MEME narrative</div>
+            <a class="pill" href="https://proton.alcor.exchange/swap?input=XUSDC-xtokens&output=MEME-m3m3" target="_blank" rel="noreferrer">Buy MEME</a>
+          </div>
+          <h3>🏅 Tokenomics of MEME</h3>
+          <p>MEME (contract: <span class="mono">m3m3</span>) runs 1% reflection + 1% burn on every transfer. Max supply: 10T. Hold 1M MEME to receive reflections.</p>
+          <ul class="story-points">
+            <li>Farm rewards for WON, EASY, and INDEX pools on Alcor.</li>
+            <li>Highest-supply flex token; burn-enabled.</li>
+            <li>Not backed by anything but laughs and community altcoins—honest degen fun.</li>
+          </ul>
+          <p>Farm MEME by providing liquidity between trusted + stable tokens. Rewards keep flowing as long as the pools run.</p>
+          <div class="links">
+            <a class="pill" href="https://proton.alcor.exchange/analytics/tokens/meme-m3m3" target="_blank" rel="noreferrer">Analytics</a>
+            <a class="pill" href="https://proton.alcor.exchange/farm" target="_blank" rel="noreferrer">Farms</a>
+            <a class="pill" href="https://explorer.xprnetwork.org/tokens/MEME-proton-m3m3" target="_blank" rel="noreferrer">Explorer</a>
+            <a class="pill" href="https://t.me/flextokens" target="_blank" rel="noreferrer">Telegram</a>
+          </div>
+        </article>
       </div>
-    </section>
-
-    <section class="card">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Balances</p>
-          <h2>My holdings</h2>
-        </div>
-        <button id="refreshBalances" class="btn small ghost" disabled>Refresh</button>
-      </div>
-      <div id="balanceList" class="balance-list empty">Connect a wallet to load balances.</div>
-    </section>
-
-    <section class="card">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Transfers</p>
-          <h2>Send tokens</h2>
-        </div>
-        <div class="helper-text">Requires connected wallet &amp; valid Proton account.</div>
-      </div>
-      <form id="transferForm" class="form">
-        <label>
-          <span>Token</span>
-          <select id="transferToken">
-            <option value="WON">WON</option>
-            <option value="EASY">EASY</option>
-            <option value="MEME">MEME</option>
-          </select>
-        </label>
-        <label>
-          <span>Recipient account</span>
-          <input id="transferTo" type="text" placeholder="receiver" autocomplete="off" required>
-        </label>
-        <label>
-          <span>Amount</span>
-          <input id="transferAmount" type="number" min="0" step="0.0001" placeholder="0.0000" required>
-        </label>
-        <label>
-          <span>Memo (optional)</span>
-          <input id="transferMemo" type="text" maxlength="120" placeholder="Purpose of transfer">
-        </label>
-        <button class="btn primary full" type="submit" id="transferSubmit" disabled>Send with wallet</button>
-      </form>
-      <div id="transferResult" class="result"></div>
     </section>
 
     <section class="card span-2">
@@ -157,25 +132,10 @@
         <!-- Action forms injected -->
       </div>
     </section>
-
-    <section class="card span-2">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Account lookup</p>
-          <h2>Check any account</h2>
-        </div>
-        <div class="helper-text">Pull live balances straight from Proton RPC.</div>
-      </div>
-      <form id="lookupForm" class="inline-form">
-        <input id="lookupAccount" type="text" placeholder="account to inspect" autocomplete="off" required>
-        <button class="btn ghost" type="submit">Lookup</button>
-      </form>
-      <div id="lookupResults" class="lookup-results empty">Enter an account name to view WON and EASY holdings.</div>
-    </section>
   </main>
 
   <div id="toast" class="toast hidden"></div>
 
-  <script type="module" src="app.js?v=2"></script>
+  <script type="module" src="app.js?v=3"></script>
 </body>
 </html>
