@@ -60,6 +60,7 @@
       <div class="token-grid" id="tokenGrid">
         <!-- Token cards injected -->
       </div>
+      <div class="helper-text">Live stats pulled from Proton RPC for all Flex tokens (EASY, WON, MEME).</div>
       <div class="story-grid">
         <article class="story">
           <div class="story-head">
@@ -124,6 +125,7 @@
           <select id="transferToken">
             <option value="WON">WON</option>
             <option value="EASY">EASY</option>
+            <option value="MEME">MEME</option>
           </select>
         </label>
         <label>
@@ -141,6 +143,19 @@
         <button class="btn primary full" type="submit" id="transferSubmit" disabled>Send with wallet</button>
       </form>
       <div id="transferResult" class="result"></div>
+    </section>
+
+    <section class="card span-2">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Contract actions</p>
+          <h2>Call any action on EASY, WON, or MEME</h2>
+        </div>
+        <div class="helper-text">Fields are generated directly from each contract ABI. Sign with your Proton wallet.</div>
+      </div>
+      <div id="actionsGrid" class="actions-grid">
+        <!-- Action forms injected -->
+      </div>
     </section>
 
     <section class="card span-2">

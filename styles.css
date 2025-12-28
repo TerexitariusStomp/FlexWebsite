@@ -430,3 +430,48 @@ input:focus, select:focus {
 
 .tone-won { background: rgba(110, 243, 197, 0.12); color: var(--accent); border-color: rgba(110, 243, 197, 0.35); }
 .tone-easy { background: rgba(255, 127, 80, 0.12); color: #ffb48f; border-color: rgba(255, 180, 143, 0.4); }
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.action-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-card .tag {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+}
+
+.action-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.action-hint {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}

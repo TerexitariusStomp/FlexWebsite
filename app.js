@@ -8,7 +8,8 @@ const appIdentifier = 'FlexTokens';
 
 const tokens = [
   { symbol: 'WON', name: 'WON', contract: 'w3won', explorer: 'https://explorer.xprnetwork.org/tokens/WON-proton-w3won' },
-  { symbol: 'EASY', name: 'EASY', contract: 'mon3y', explorer: 'https://explorer.xprnetwork.org/tokens/EASY-proton-mon3y' }
+  { symbol: 'EASY', name: 'EASY', contract: 'mon3y', explorer: 'https://explorer.xprnetwork.org/tokens/EASY-proton-mon3y' },
+  { symbol: 'MEME', name: 'MEME', contract: 'm3m3', explorer: 'https://explorer.xprnetwork.org/tokens/MEME-proton-m3m3' }
 ];
 
 const sessionKit = new SessionKit(
@@ -42,13 +43,19 @@ const el = {
   lookupForm: document.getElementById('lookupForm'),
   lookupAccount: document.getElementById('lookupAccount'),
   lookupResults: document.getElementById('lookupResults'),
+  actionsGrid: document.getElementById('actionsGrid'),
   toast: document.getElementById('toast')
 };
 
 const state = {
   loadingBalances: false,
-  loadingTokens: false
+  loadingTokens: false,
+  loadingActions: false
 };
+
+const abiCache = {};
+const preferredActionOrder = ['transfer', 'distribute', 'radiate', 'setflextoken', 'sprouttoken', 'setflexpool', 'addpool', 'setconfig', 'noflexzone', 'optoutoftax', 'settree', 'settreememo', 'open', 'close', 'issue', 'burn', 'create'];
+const actionForms = new Map();
 
 function showToast(message, tone = 'info') {
   el.toast.textContent = message;
@@ -118,6 +125,16 @@ async function fetchTokenStats() {
     state.loadingTokens = false;
     renderTokens();
   }
+}
+
+async function ensureAbi(contract) {
+  if (abiCache[contract]) return abiCache[contract];
+  const { data } = await rpcPost('/v1/chain/get_abi', { account_name: contract });
+  if (!data?.abi) {
+    throw new Error(`ABI unavailable for ${contract}`);
+  }
+  abiCache[contract] = data.abi;
+  return data.abi;
 }
 
 function renderTokens() {
@@ -336,6 +353,152 @@ async function lookupAccount(evt) {
   }
 }
 
+function buildFieldsForAction(abi, actionName, fieldsWrap) {
+  const action = abi.actions.find((a) => a.name === actionName);
+  const struct = abi.structs.find((s) => s.name === action?.type);
+  fieldsWrap.innerHTML = '';
+  if (!struct?.fields?.length) {
+    fieldsWrap.innerHTML = '<div class="action-hint">This action accepts no parameters.</div>';
+    return;
+  }
+  struct.fields.forEach((field) => {
+    const fieldWrap = document.createElement('label');
+    fieldWrap.innerHTML = `
+      <span>${field.name} <span class="mono small">(${field.type})</span></span>
+      <input data-field="${field.name}" type="text" placeholder="${field.type === 'asset' ? '0.0000 SYMBOL' : field.type}">
+    `;
+    fieldsWrap.appendChild(fieldWrap);
+  });
+}
+
+function sortActions(abi) {
+  return [...abi.actions].sort((a, b) => {
+    const ia = preferredActionOrder.indexOf(a.name);
+    const ib = preferredActionOrder.indexOf(b.name);
+    if (ia === -1 && ib === -1) return a.name.localeCompare(b.name);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+}
+
+function readFields(fieldsWrap) {
+  const inputs = fieldsWrap.querySelectorAll('[data-field]');
+  const data = {};
+  inputs.forEach((input) => {
+    const name = input.dataset.field;
+    const raw = input.value;
+    data[name] = raw;
+  });
+  return data;
+}
+
+async function executeAction(token, selectEl, fieldsWrap, resultEl, buttonEl) {
+  if (!session) {
+    showToast('Connect a wallet to sign transactions.', 'error');
+    return;
+  }
+  const actionName = selectEl.value;
+  const abi = abiCache[token.contract];
+  const payload = readFields(fieldsWrap);
+  buttonEl.disabled = true;
+  buttonEl.textContent = 'Awaiting signature…';
+  resultEl.textContent = '';
+  try {
+    const tx = await session.transact({
+      actions: [
+        {
+          account: token.contract,
+          name: actionName,
+          authorization: [session.permissionLevel],
+          data: payload
+        }
+      ]
+    });
+    const txid = tx.transaction_id || tx.resolved?.transaction?.id || tx.processed?.id || '';
+    resultEl.innerHTML = `
+      <div>Called <strong>${actionName}</strong> on <span class="mono">${token.contract}</span></div>
+      <div class="helper-text mono small">${txid ? `Transaction: ${short(txid)}` : 'Sent for signing'}</div>
+    `;
+    showToast(`${actionName} sent to network.`);
+    if (session?.actor) await loadBalances(session.actor);
+  } catch (err) {
+    console.error(err);
+    const reason = err?.cause?.message || err?.message || 'Action failed.';
+    resultEl.textContent = reason;
+    showToast(reason, 'error');
+  } finally {
+    buttonEl.disabled = false;
+    buttonEl.textContent = 'Execute with wallet';
+  }
+}
+
+async function buildActionCard(token) {
+  const card = document.createElement('div');
+  card.className = 'action-card';
+  const header = document.createElement('header');
+  header.innerHTML = `
+    <div>
+      <div class="eyebrow">${token.name}</div>
+      <h3 style="margin:4px 0;">${token.contract}</h3>
+    </div>
+    <a class="pill" href="${token.explorer}" target="_blank" rel="noreferrer">Explorer</a>
+  `;
+  const selectLabel = document.createElement('label');
+  selectLabel.innerHTML = '<span>Action</span>';
+  const select = document.createElement('select');
+  selectLabel.appendChild(select);
+  const fieldsWrap = document.createElement('div');
+  fieldsWrap.className = 'action-fields';
+  const hint = document.createElement('div');
+  hint.className = 'action-hint';
+  hint.textContent = 'Most actions require you to provide the same fields shown in the explorer. Numbers, names, and assets must respect on-chain formats.';
+  const submit = document.createElement('button');
+  submit.className = 'btn primary small';
+  submit.type = 'button';
+  submit.textContent = 'Execute with wallet';
+  const result = document.createElement('div');
+  result.className = 'result';
+  card.appendChild(header);
+  card.appendChild(selectLabel);
+  card.appendChild(fieldsWrap);
+  card.appendChild(hint);
+  card.appendChild(submit);
+  card.appendChild(result);
+  el.actionsGrid.appendChild(card);
+
+  try {
+    const abi = await ensureAbi(token.contract);
+    const sortedActions = sortActions(abi);
+    sortedActions.forEach((action) => {
+      const opt = document.createElement('option');
+      opt.value = action.name;
+      opt.textContent = action.name;
+      select.appendChild(opt);
+    });
+    buildFieldsForAction(abi, sortedActions[0]?.name, fieldsWrap);
+    select.addEventListener('change', () => buildFieldsForAction(abi, select.value, fieldsWrap));
+    submit.addEventListener('click', () => executeAction(token, select, fieldsWrap, result, submit));
+    actionForms.set(token.contract, { select, fieldsWrap, result, submit });
+  } catch (err) {
+    console.error(err);
+    fieldsWrap.innerHTML = `<div class="action-hint">Unable to fetch ABI for ${token.contract}. Try refreshing.</div>`;
+  }
+}
+
+async function renderActionCards() {
+  state.loadingActions = true;
+  el.actionsGrid.innerHTML = '<div class="action-hint">Loading contract ABIs…</div>';
+  try {
+    el.actionsGrid.innerHTML = '';
+    for (const token of tokens) {
+      await buildActionCard(token);
+    }
+  } finally {
+    state.loadingActions = false;
+  }
+}
+
 function bindEvents() {
   el.connect.addEventListener('click', connectWallet);
   el.disconnect.addEventListener('click', disconnectWallet);
@@ -349,6 +512,7 @@ async function init() {
   updateSessionUI();
   renderTokens();
   await fetchTokenStats();
+  await renderActionCards();
   try {
     const restored = await sessionKit.restore();
     if (restored?.session) {
