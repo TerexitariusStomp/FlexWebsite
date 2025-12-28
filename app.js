@@ -524,7 +524,12 @@ async function loginWithPlugin(plugin) {
 }
 
 function connectWallet() {
-  openWalletModal();
+  if (el.walletModal) {
+    openWalletModal();
+  } else {
+    // Fallback: invoke WharfKit UI directly if modal not in DOM.
+    loginWithPlugin(undefined);
+  }
 }
 
 async function disconnectWallet() {
@@ -726,12 +731,20 @@ function renderActionCards() {
 function bindEvents() {
   el.connect.addEventListener('click', connectWallet);
   el.disconnect.addEventListener('click', disconnectWallet);
-  el.walletClose.addEventListener('click', closeWalletModal);
-  el.walletModal.addEventListener('click', (evt) => {
-    if (evt.target === el.walletModal) closeWalletModal();
-  });
-  el.walletAnchor.addEventListener('click', () => loginWithPlugin(anchorPlugin));
-  el.walletWebAuth.addEventListener('click', () => loginWithPlugin(webAuthPlugin));
+  if (el.walletClose) {
+    el.walletClose.addEventListener('click', closeWalletModal);
+  }
+  if (el.walletModal) {
+    el.walletModal.addEventListener('click', (evt) => {
+      if (evt.target === el.walletModal) closeWalletModal();
+    });
+  }
+  if (el.walletAnchor) {
+    el.walletAnchor.addEventListener('click', () => loginWithPlugin(anchorPlugin));
+  }
+  if (el.walletWebAuth) {
+    el.walletWebAuth.addEventListener('click', () => loginWithPlugin(webAuthPlugin));
+  }
 }
 
 async function init() {
